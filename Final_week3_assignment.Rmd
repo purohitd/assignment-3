@@ -1,0 +1,208 @@
+---
+title: "Final_Week3_R_Assignment"
+author: "Divya Purohith"
+date: "November 7, 2018"
+output: html_document
+---
+
+1. Please Do the following DataCamp activities.
+The first two chapters of Writing Functions in R.
+The whole course on "Introduction to the Tidyverse"
+
+2. Read in the .csv file (call it rna_counts).
+
+#read .csv file and call it rna_counts
+
+```{r}
+rna_counts <- read.csv("./eXpress_dm_counts.csv", row.names=1)
+```
+
+*DONE*: Write a function that calculates and can output mean expression (using the mean() function) for a given data column. 
+
+*DONE*: Write this function so that it can work on either raw counts (as provided) or transformed to log2 values of the counts, with a logical argument that allows the user to choose whether to do this on the raw scale or log2 scale (i.e. log2 transform, then calculate the mean). 
+CHECK at end: Make sure all functions you write for this assignment have this argument. We often use log2 scale for RNAseq data. 
+*DONE*: Demonstrate that it works on several of the columns of data.
+
+```{r}
+compute_mean <- function(columnData, isLog2 = FALSE) {
+  #column_data = rna_counts[,columnIndex];
+  mean_value = NA;
+  if(isLog2 ==TRUE){
+    log2_values = log2(columnData)
+    log2_values <-  log2_values[is.finite(log2(columnData))] #remove -Inf. 
+    mean_value = mean(log2_values, na.rm = TRUE)
+  }else{
+    mean_value <- mean(columnData, na.rm = TRUE);
+  }
+  return(mean_value)
+}
+```
+
+#Example of some random numbers to see if the function worked
+```{r}
+#compute_mean(rna_counts[,1], isLog2 = FALSE);
+compute_mean( rna_counts[,"F101_lg_female_hdhorn"], isLog2 = FALSE)
+compute_mean(rna_counts[,1], isLog2 = TRUE)
+compute_mean(rna_counts[,2], isLog2 = TRUE)
+```
+
+3. Now using the function you have written, 
+Task1 DONE: use a loop to generate a vector of the mean expression value for each column (each sample). 
+ 
+*Task2 DONE*: Make sure that your output vector have named elements (i.e. each element of the vector is associated with the names of the original columns of the data). 
+
+*Task 3 DONE*: Confirm that this function is giving you the correct answer based on what you found in question 2. 
+
+*Task2 analyse*: Do you notice any patterns for which individuals or tissues have the highest mean expression?
+
+```{r}
+compute_matrix_col_mean_loop = function(matrix, isLog2 = FALSE){
+  outVector = NULL;
+  if(isLog2==FALSE){
+  for( col in 1 :ncol(matrix)) {
+    key = colnames(matrix)[col]
+    value = compute_mean(matrix[,col],isLog2)
+    names(value) <- key
+    outVector <- c(outVector, value)
+  }
+  return( outVector)
+  }else{
+    
+    #TRANSFORMED VALUES
+  }
+}
+
+meanFromLoop <- compute_matrix_col_mean_loop(rna_counts, isLog2 = TRUE)
+
+na.omit(meanFromLoop)
+#compute_matrix_mean_loop(rna_counts, isLog2 = TRUE)
+```
+
+4. Repeat this procedure (using the function you wrote, or slightly revised) that uses one of the apply family of functions to do the same as 3. Check which is faster (to compute not to write), and demonstrate how you did this.
+
+```{r}
+compute_matrix_col_mean = function(matrix, isLog2 = FALSE){
+     apply(matrix,2, compute_mean, isLog2)
+}
+meanFromApply <- compute_matrix_col_mean(rna_counts, isLog2 = TRUE)
+
+#check same
+identical(meanFromLoop, meanFromApply)
+#sort(matrixMean)
+#compute_matrix_mean(rna_counts, isLog2 = TRUE)
+
+#check which one is faster' -- loop is faster, apply is slower.
+system.time(replicate(1000,compute_matrix_col_mean_loop(rna_counts, isLog2 = TRUE)))
+system.time(replicate(1000,compute_matrix_col_mean(rna_counts, isLog2 = TRUE)))
+#> system.time(replicate(1000,compute_matrix_mean_loop(rna_counts, isLog2 = TRUE)))
+#   user  system elapsed 
+# 19.23    0.00   19.44
+#> system.time(replicate(1000,compute_matrix_mean(rna_counts, isLog2 = TRUE)))
+#    user  system elapsed 
+# 29.64    0.45   30.14 
+```
+
+5. What is a much easier way to do the operations we did in Q 3 and 4, (i.e. you don't need to write your own function) to calculate and output all of the column means? i.e. an Rish way of doing this?
+
+#much way easier way to do means of all the columns
+```{r}
+colMeans(rna_counts) 
+ # The disadvantage is, this one does not have isLog2 option.
+```
+
+6. It is common (say for a MAplot) to want the mean expression value of each given gene across all samples. Write a function to do this, and using one of the approaches from Q 3-5 generate and store these values in a variable.
+```{r}
+compute_matrix_row_mean = function(matrix, isLog2 = FALSE){
+     apply(matrix,1, compute_mean, isLog2)
+}
+
+gene_mean_expression = compute_matrix_row_mean(rna_counts)
+head(gene_mean_expression) #same gene, accross samples.
+```
+
+7. We are very interested in what is going on in the head horns between small males and large males. Using the type of tools you have written (feel free to modify as you need, but show the new functions) calculate the mean expression for the subset of columns for large and small male head horns. Note you are calculating means on a gene by gene basis, NOT sample by sample. Now calculate the mean difference (again gene by gene) between large male and small males (for head horns). i.e. first calculate the mean expression among individuals who are large males (head horns), ditto for the small males, and calculate their difference.
+
+#grep function to extract sm_male_hdhorn
+```{r}
+sm_male_hdhorn <- rna_counts[,grep("sm_male_hdhorn",colnames(rna_counts))]
+```
+
+#grep function to extract lg_male_hdhorn
+```{r}
+lg_male_hdhorn <- rna_counts[,grep("lg_male_hdhorn",colnames(rna_counts))]
+lg_male_hdhorn
+```
+
+#gene_mean_expression for sm_male_hdhorn
+```{r}
+compute_matrix_row_mean = function(matrix, isLog2 = FALSE){
+     apply(matrix,1, compute_mean, isLog2)
+}
+
+sm_gene_mean_expression = compute_matrix_row_mean(sm_male_hdhorn)
+head(gene_mean_expression) #same gene, accross samples.
+```
+
+#gene_mean_expression for lg_male_hdhorn
+```{r}
+compute_matrix_row_mean = function(matrix, isLog2 = FALSE){
+  apply(matrix,1, compute_mean, isLog2)
+}
+
+lg_gene_mean_expression = compute_matrix_row_mean(lg_male_hdhorn)
+head(gene_mean_expression) #same gene, accross samples.
+```
+
+#head and tail of small and large male headhorn to see if it worked
+```{r}
+head(lg_gene_mean_expression)
+tail(lg_gene_mean_expression)
+head(sm_gene_mean_expression)
+tail(sm_gene_mean_expression)
+```
+
+#difference between lg_male_horn and sm_male_horn
+```{r}
+diff <- cbind(lg_gene_mean_expression - sm_gene_mean_expression)
+tail(diff)
+```
+
+8. Using the basic plot function (although you can use ggplot2 if you prefer), plot the mean expression of each gene on the X axis, and the difference in expression values on the Y axis. Now repeat, but with log2 transformed data. This is the basic idea of a MAplot.
+
+#basic plot of mean expression of each gene on X axis & difference in expression values on Y axis
+```{r}
+plot(gene_mean_expression, diff)
+
+#I donot understand why it shows the positive values
+```
+
+#ggplot for gene expression
+```{r}
+require(ggplot2)
+
+ggplot(data = rna_counts, aes(x = gene_mean_expression, y = diff)) +
+  geom_point() +
+  labs(title = "Basic plot for gene mean expression")
+```
+  
+#log2 transformations of mean gene expressions and difference of expreesion values
+```{r}
+log2_gene_mean_expression <- log2(gene_mean_expression) #remove -Inf
+log2_diff_mean_expression <- log2(diff) #remove -Inf
+```
+
+#basic plot of log2 transformed values
+```{r}
+plot(x = log2_gene_mean_expression, y = log2_diff_mean_expression)
+```
+
+#ggplot for gene expression
+```{r}
+ggplot(data = rna_counts, aes(x = log2(gene_mean_expression), y = log2(diff))) +
+  geom_point() +
+  labs(title = "Basic plot for gene mean expression")
+```
+
+#Bonus question. What other way might you be able to do these operations (could be a tidyverse way, or a more Rish vectorized way)?
+
+*Answer*: I am not sure if you asked to perfome both the ways. I tried tidyverse way, but I was able to perfom Rish vectorized way more convinently and preferably than the tidyverse way.
